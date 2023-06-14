@@ -17,10 +17,10 @@ services:
       - postgres
     environment:
       PGRST_DB_URI: postgres://dev:dev@postgres:5432/backend_main
-      PGRST_ANON_ROLE: anonymous
+      PGRST_DB_ANON_ROLE: anonymous
+      PGRST_DB_SCHEMAS: api
       PGRST_JWT_SECRET: thisIsAFakeJWTSecretForDevEnvOnlyAndNeverInProductionEnv
       PGRST_JWT_SECRET_IS_BASE64: "false"
-      PGRST_DB_SCHEMAS: api
     ports:
       - 33000:3000
 
