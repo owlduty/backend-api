@@ -1,6 +1,6 @@
-drop table api.tests;
-drop type api.test_status;
-drop type api.test_priority;
-drop type api.test_type;
+-- drop roles
+drop role anonymous;
 
-drop schema api;
+-- drop schemas
+drop schema synthetic CASCADE;
+drop schema v1_0;
