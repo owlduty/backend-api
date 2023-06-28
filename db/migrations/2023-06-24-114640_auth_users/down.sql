@@ -1,0 +1,1 @@
+drop schema auth CASCADE;

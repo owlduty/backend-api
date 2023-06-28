@@ -12,5 +12,5 @@ pub static GRILLON: Lazy<Grillon> = Lazy::new(|| {
     Grillon::new(&api_base_url).expect("Failed to initialize Grillon instance to run tests")
 });
 
+mod auth;
 mod synthetics;
-mod users;

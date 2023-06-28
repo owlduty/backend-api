@@ -2,4 +2,4 @@
 # see https://diesel.rs/guides/configuring-diesel-cli
 
 [migrations_directory]
-dir = "migrations"
+dir = "db/migrations"

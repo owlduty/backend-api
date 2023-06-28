@@ -2,12 +2,15 @@ version: "3.3"
 services:
   postgres:
     image: postgres:15.2
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: dev
-      POSTGRES_PASSWORD: dev
+      POSTGRES_USER: ${DB_SUPER_USER}
+      POSTGRES_PASSWORD: ${DB_SUPER_USER_PASS}
       POSTGRES_DB: backend_main
     volumes:
       - owlduty-pg-data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
     ports:
       - 5432:5432
 
@@ -16,13 +19,21 @@ services:
     depends_on:
       - postgres
     environment:
-      PGRST_DB_URI: postgres://dev:dev@postgres:5432/backend_main
-      PGRST_DB_ANON_ROLE: anonymous
-      PGRST_DB_SCHEMAS: v1_0
-      PGRST_JWT_SECRET: thisIsAFakeJWTSecretForDevEnvOnlyAndNeverInProductionEnv
-      PGRST_JWT_SECRET_IS_BASE64: "false"
+      PGRST_DB_URI: postgres://${DB_SUPER_USER}:${DB_SUPER_USER_PASS}@postgres:5432/backend_main
+      PGRST_DB_ANON_ROLE: ${DB_ANON_ROLE}
+      PGRST_DB_SCHEMAS: ${DB_PUBLIC_SCHEMAS}
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_JWT_SECRET_IS_BASE64: ${JWT_SECRET_IS_BASE64}
+      PGRST_OPENAPI_SERVER_PROXY_URI: ${API_BASE_URL}
     ports:
       - 33000:3000
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v5.1.0
+    environment:
+      API_URL: ${API_BASE_URL}
+    ports:
+      - 80:8080
 
 volumes:
   owlduty-pg-data:
