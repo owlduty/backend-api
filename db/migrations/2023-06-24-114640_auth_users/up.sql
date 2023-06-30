@@ -5,7 +5,7 @@ create type user_role as enum ('webuser');
 
 create table
 auth.users (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   name text not null,
   email public.citext not null unique,
   pass text not null,
