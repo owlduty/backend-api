@@ -6,6 +6,6 @@ edition = "2021"
 
 [dev-dependencies]
 grillon = { git = "https://github.com/owlduty/grillon", rev = "3072021383794b630d28dd4812253ac00fb5208c" }
-tokio = { version = "1.28.2", features = ["macros"] }
+tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 once_cell = "1.18.0"
 dotenv = "0.15.0"
