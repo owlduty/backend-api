@@ -2,6 +2,7 @@ use super::TestContext;
 use crate::api::{GRILLON, PG_POOL};
 use async_trait::async_trait;
 use grillon::{dsl::is, header, json, Assert};
+use rand::distributions::{Alphanumeric, DistString};
 use std::future::Future;
 use uuid::Uuid;
 
@@ -38,6 +39,12 @@ impl TestContext for SignupCtx<'_> {
     }
 }
 
+fn random_email<'a>() -> String {
+    let rand_part = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
+
+    format!("john.doe+{rand_part}@owlduty.com")
+}
+
 fn user_signup(email: &str, name: &str, password: &str) -> impl Future<Output = Assert> {
     GRILLON
         .post("rpc/signup")
@@ -55,7 +62,7 @@ fn user_signup(email: &str, name: &str, password: &str) -> impl Future<Output = 
 
 #[test]
 fn signup_success() {
-    let email = "john.doe@owlduty.com";
+    let email = &random_email();
     let assertion = async {
         user_signup(email, "john.doe", "testpass")
             .await
@@ -89,4 +96,24 @@ fn signup_success() {
     };
 
     SignupCtx::new(email).run_test(assertion);
+}
+
+#[test]
+fn user_already_exists() {
+    let email = &random_email();
+    let assertion = async {
+        user_signup(email, "john.doe", "testpass").await;
+        user_signup(email, "john.doe", "testpass")
+            .await
+            .status(is(409));
+    };
+
+    SignupCtx::new(email).run_test(assertion);
+}
+
+#[tokio::test]
+async fn invalid_email() {
+    user_signup("invalidATemail.com", "john.doe", "testpass")
+        .await
+        .status(is(400));
 }

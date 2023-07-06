@@ -78,6 +78,7 @@ dependencies = [
  "dotenv",
  "grillon",
  "once_cell",
+ "rand",
  "sqlx",
  "tokio",
  "uuid",
