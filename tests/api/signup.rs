@@ -1,8 +1,7 @@
-use super::TestContext;
-use crate::api::{GRILLON, PG_POOL};
+use super::ctx::{random_email, TestContext};
+use crate::api::{jwt::jwt_is_valid, GRILLON, PG_POOL};
 use async_trait::async_trait;
 use grillon::{dsl::is, header, json, Assert};
-use rand::distributions::{Alphanumeric, DistString};
 use std::future::Future;
 use uuid::Uuid;
 
@@ -39,13 +38,7 @@ impl TestContext for SignupCtx<'_> {
     }
 }
 
-fn random_email<'a>() -> String {
-    let rand_part = Alphanumeric.sample_string(&mut rand::thread_rng(), 16);
-
-    format!("john.doe+{rand_part}@owlduty.com")
-}
-
-fn user_signup(email: &str, name: &str, password: &str) -> impl Future<Output = Assert> {
+pub(crate) fn user_signup(email: &str, name: &str, password: &str) -> impl Future<Output = Assert> {
     GRILLON
         .post("rpc/signup")
         .headers(vec![(
@@ -84,14 +77,8 @@ fn signup_success() {
                 );
 
                 // Check JWT token
-                assert!(
-                    json_body["token"].is_string(),
-                    "JWT token should be a string"
-                );
-                assert!(
-                    json_body["token"].to_string().len() > 1,
-                    "JWT token should be longer than 1 character"
-                )
+                let token: &str = json_body["token"].as_str().expect("Failed to retrive JWT");
+                assert!(jwt_is_valid(token).is_ok(), "Invalid JWT");
             })
     };
 
