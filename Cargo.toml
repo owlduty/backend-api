@@ -1,7 +1,7 @@
 [package]
-name = "backend-api"
+name = "owlduty-api"
 version = "0.1.0"
-description = "The backend API served with PostgREST."
+description = "The REST API served with PostgREST."
 edition = "2021"
 
 [dev-dependencies]
@@ -9,9 +9,16 @@ grillon = { git = "https://github.com/owlduty/grillon", rev = "3072021383794b630
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
 once_cell = "1.18.0"
 dotenv = "0.15.0"
-sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-rustls", "postgres" ] }
+sqlx = { version = "0.7", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "uuid",
+    "macros",
+] }
 async-trait = "0.1.71"
-uuid = { version = "1.4.0", features = ["v4"] }
 rand = "0.8.5"
 jsonwebtoken = "8.3.0"
-serde = {version = "1.0.164", features = ["derive"] }
+owlduty_domain = { path = "./domain" }
+uuid = { version = "1.4.0", features = ["v4", "serde"] }
+serde = "1.0.164"

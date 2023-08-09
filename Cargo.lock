@@ -71,22 +71,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "backend-api"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "dotenv",
- "grillon",
- "jsonwebtoken",
- "once_cell",
- "rand",
- "serde",
- "sqlx",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1055,6 +1039,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "owlduty-api"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "dotenv",
+ "grillon",
+ "jsonwebtoken",
+ "once_cell",
+ "owlduty_domain",
+ "rand",
+ "serde",
+ "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "owlduty_domain"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "uuid",
+]
+
+[[package]]
 name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1626,6 +1635,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
+ "uuid",
  "webpki-roots",
 ]
 
@@ -1707,6 +1717,7 @@ dependencies = [
  "stringprep",
  "thiserror",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -1746,6 +1757,7 @@ dependencies = [
  "stringprep",
  "thiserror",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -1769,6 +1781,7 @@ dependencies = [
  "sqlx-core",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -2085,6 +2098,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d023da39d1fde5a8a3fe1f3e01ca9632ada0a63e9797de55a879d6e2236277be"
 dependencies = [
  "getrandom",
+ "serde",
 ]
 
 [[package]]

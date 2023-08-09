@@ -3,13 +3,21 @@ set search_path to auth;
 
 create type user_role as enum ('webuser');
 
-create table
-auth.users (
+-- A team allows us to get the number of seats, to attach information
+-- such as credits, subscription. A team doesn't have necessarily a
+-- name. In case of only one user the team is implicit.
+create table auth.teams (
+  id uuid primary key default gen_random_uuid(),
+  name text
+);
+
+create table auth.users (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   email public.citext not null unique,
   pass text not null,
   "role" user_role not null default 'webuser',
+  team_id uuid references auth.teams(id) NOT NULL
 
   check (length(name) > 2),
   -- email REGEX (RFC 5322)
@@ -17,8 +25,7 @@ auth.users (
 );
 
 -- Retrieve user role
-create or replace function
-auth.user_role(email text, pass text) returns name as $$
+create or replace function auth.user_role(email text, pass text) returns name as $$
 begin
   return (
     select role from auth.users
@@ -30,8 +37,7 @@ $$ language plpgsql;
 
 -- Encrypt a password in case of a new user or if
 -- the password is different (updated).
-create or replace function
-auth.encrypt_pass() returns trigger as $$
+create or replace function auth.encrypt_pass() returns trigger as $$
 begin
   if tg_op = 'INSERT' or new.pass <> old.pass then
     new.pass = crypt(new.pass, gen_salt('bf'));
