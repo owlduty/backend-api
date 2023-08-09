@@ -1,6 +1,6 @@
 use crate::api::jwt::jwt_is_valid;
 
-use super::ctx::{random_email, TestContext};
+use super::ctx::{random_email, TestCtx};
 use super::{GRILLON, PG_POOL};
 use async_trait::async_trait;
 use grillon::{dsl::is, header, json, Assert};
@@ -33,7 +33,7 @@ pub(crate) fn user_signin(email: &str, password: &str) -> impl Future<Output = A
 }
 
 #[async_trait]
-impl TestContext for SigninCtx<'_> {
+impl TestCtx for SigninCtx<'_> {
     async fn setup(&self) {
         let query_res =
             sqlx::query("insert into auth.users (name, email, pass) values ($1, $2, $3)")

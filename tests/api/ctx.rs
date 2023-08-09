@@ -10,10 +10,10 @@ pub(crate) fn random_email<'a>() -> String {
 }
 
 #[async_trait]
-pub(crate) trait TestContext {
+pub(crate) trait TestCtx {
     async fn setup(&self);
     async fn teardown(&self);
-    fn run_test<F>(&self, test: F) -> ()
+    fn run_test<F>(&self, test: F)
     where
         F: std::future::Future,
     {
@@ -22,10 +22,11 @@ pub(crate) trait TestContext {
         let assert = AssertUnwindSafe(async { test.await });
         let result = catch_unwind(|| {
             TOKIO_RUNTIME.block_on(assert);
-        });
+        })
+        .is_ok();
 
         TOKIO_RUNTIME.block_on(async { self.teardown().await });
 
-        assert!(result.is_ok());
+        assert!(result);
     }
 }

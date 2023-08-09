@@ -1,63 +1,75 @@
-use super::ctx::{random_email, TestContext};
-use crate::api::{jwt::jwt_is_valid, GRILLON, PG_POOL};
+use super::ctx::{random_email, TestCtx};
+use crate::api::{jwt::jwt_is_valid, GRILLON, PG_POOL, TOKIO_RUNTIME};
 use async_trait::async_trait;
 use grillon::{dsl::is, header, json, Assert};
+use owlduty_domain::user::User;
 use std::future::Future;
 use uuid::Uuid;
 
 pub(crate) struct SignupCtx<'a> {
-    user_email: &'a str,
+    user: &'a User,
 }
 
 impl<'a> SignupCtx<'a> {
-    fn new(user_email: &'a str) -> Self {
-        Self { user_email }
+    fn new(user: &'a User) -> Self {
+        Self { user }
     }
 }
 
 #[async_trait]
-impl TestContext for SignupCtx<'_> {
+impl TestCtx for SignupCtx<'_> {
     async fn setup(&self) {}
 
     async fn teardown(&self) {
-        let query_res = sqlx::query("DELETE FROM auth.users WHERE email = $1")
-            .bind(self.user_email)
-            .execute(&*PG_POOL)
-            .await;
+        let query_res = sqlx::query(
+            r#"
+            WITH user_with_team AS (
+                SELECT team_id FROM auth.users
+                JOIN auth.teams ON team_id = auth.teams.id
+                WHERE email = $1::TEXT::CITEXT
+            ), delete_user AS (
+                DELETE FROM auth.users WHERE email = $1::TEXT::CITEXT
+                AND team_id IN (SELECT team_id FROM user_with_team)
+            )
+            DELETE FROM auth.teams WHERE id IN (SELECT team_id FROM user_with_team);
+            "#,
+        )
+        .bind(self.user.email.clone())
+        .execute(&*PG_POOL)
+        .await;
 
         match query_res {
             Ok(res) if res.rows_affected() != 1 => {
-                eprintln!(
+                panic!(
                     "[TEARDOWN] Expected 1 row to be removed but got: {}",
                     res.rows_affected()
                 )
             }
-            Ok(_) => (),
-            Err(err) => eprintln!("[TEARDOWN] Query failed: {}", err),
+            Ok(res) => println!("Result of the delete: {:#?} ", res),
+            Err(err) => panic!("[TEARDOWN][QUERY FAILED] {}", err),
         };
     }
 }
 
-pub(crate) fn user_signup(email: &str, name: &str, password: &str) -> impl Future<Output = Assert> {
+pub(crate) fn user_signup(user: &User) -> impl Future<Output = Assert> {
+    let payload = json!(user);
+
     GRILLON
         .post("rpc/signup")
         .headers(vec![(
             header::CONTENT_TYPE,
             header::HeaderValue::from_static("application/json"),
         )])
-        .payload(json!({
-            "name": name,
-            "email": email,
-            "password": password
-        }))
+        .payload(payload)
         .assert()
 }
 
 #[test]
-fn signup_success() {
-    let email = &random_email();
+fn signup_without_team() {
+    let user = User::new(&random_email(), "john.doe", "testpass", None);
+
     let assertion = async {
-        user_signup(email, "john.doe", "testpass")
+        user_signup(&user)
             .await
             .status(is(200))
             .assert_fn(|assert| {
@@ -82,25 +94,64 @@ fn signup_success() {
             })
     };
 
-    SignupCtx::new(email).run_test(assertion);
+    SignupCtx::new(&user).run_test(assertion);
 }
 
 #[test]
 fn user_already_exists() {
-    let email = &random_email();
+    let user = User::new(&random_email(), "john.doe", "testpass", None);
     let assertion = async {
-        user_signup(email, "john.doe", "testpass").await;
-        user_signup(email, "john.doe", "testpass")
-            .await
-            .status(is(409));
+        user_signup(&user).await;
+        user_signup(&user).await.status(is(409));
     };
 
-    SignupCtx::new(email).run_test(assertion);
+    SignupCtx::new(&user).run_test(assertion);
 }
 
 #[tokio::test]
 async fn invalid_email() {
-    user_signup("invalidATemail.com", "john.doe", "testpass")
+    let user = User::new("invalidATemail.com", "john.doe", "testpass", None);
+    user_signup(&user).await.status(is(400));
+}
+
+#[test]
+fn signup_with_team() {
+    let team_id = async {
+        sqlx::query!(
+            r#"
+            INSERT INTO auth.teams
+            DEFAULT VALUES
+            RETURNING id"#
+        )
+        .fetch_one(&*PG_POOL)
         .await
-        .status(is(400));
+        .expect("Failed to create the team stub.")
+        .id
+    };
+
+    let team_id = TOKIO_RUNTIME.block_on(team_id);
+    let user = User::new(&random_email(), "john.doe", "testpass", Some(team_id));
+
+    let assertion = async {
+        // Signup user with existing team
+        user_signup(&user).await.status(is(200));
+
+        // Check the user is explicitly associated to a team. The Uuid
+        // mapping will validate the ID type.
+        let fetch_team_id: Uuid = sqlx::query!(
+            "SELECT team_id from auth.users WHERE email = $1::TEXT::CITEXT",
+            user.email.clone()
+        )
+        .fetch_one(&*PG_POOL)
+        .await
+        .expect("")
+        .team_id;
+
+        assert_eq!(
+            fetch_team_id, team_id,
+            "The team id from signup doesn't match the one in database"
+        );
+    };
+
+    SignupCtx::new(&user).run_test(assertion);
 }
